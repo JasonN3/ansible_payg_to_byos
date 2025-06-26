@@ -1,0 +1,28 @@
+---
+- name: Convert to BYOS
+  hosts: all
+
+  tasks:
+    - name: Get VM Information
+      azure.azcollection.azure_rm_virtualmachine_info:
+        resource_group: "{{ resource_group }}"
+        name: "{{ inventory_hostname }}"
+        register: vm_info
+
+    - name: Ensure VM is Linux according to Azure
+      ansible.builtin.assert: vm_info.vms[0].os_type == "Linux"
+
+    - name: Ensure VM is RHEL according to OS
+      ansible.builtin.assert: ansible_facts["ansible_distribution"] == "CentOS"
+
+    - name: Set VM to BYOS
+      azure.azcollection.azure_rm_virtualmachine:
+        name: "{{ inventory_hostname }}"
+        resource_group: "{{ resource_group }}"
+        license_type: "RHEL_BYOS"
+
+    - name: Register the OS to RH Cloud
+      community.general.redhat_subscription:
+        activationkey: "{{ activationkey }}"
+        force_register: true
+        org_id: "{{ org_id }}"
